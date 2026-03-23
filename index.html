@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Expense Categorizer — AI</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #12121a;
+    --surface2: #1a1a26;
+    --border: rgba(255,255,255,0.07);
+    --text: #e8e8f0;
+    --muted: #6b6b80;
+    --accent: #7c6df0;
+    --accent2: #4fd1c5;
+    --danger: #f87171;
+    --success: #4ade80;
+    --radius: 14px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Background grid */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(124,109,240,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(124,109,240,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+  }
+
+  /* Glow blob */
+  body::after {
+    content: '';
+    position: fixed;
+    width: 500px; height: 500px;
+    background: radial-gradient(circle, rgba(124,109,240,0.08) 0%, transparent 70%);
+    top: -100px; right: -100px;
+    pointer-events: none;
+    border-radius: 50%;
+  }
+
+  .container {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 40px 24px 80px;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* Header */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 52px;
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .logo-icon {
+    width: 42px; height: 42px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px;
+    box-shadow: 0 0 24px rgba(124,109,240,0.35);
+  }
+
+  .logo h1 {
+    font-family: 'Syne', sans-serif;
+    font-size: 20px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+  }
+
+  .logo span {
+    color: var(--accent);
+  }
+
+  .badge {
+    background: rgba(124,109,240,0.15);
+    border: 1px solid rgba(124,109,240,0.3);
+    color: var(--accent);
+    padding: 4px 12px;
+    border-radius: 100px;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+
+  /* Tabs */
+  .tabs {
+    display: flex;
+    gap: 4px;
+    background: var(--surface);
+    padding: 4px;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    margin-bottom: 32px;
+    width: fit-content;
+  }
+
+  .tab-btn {
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    padding: 8px 20px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-weight: 500;
+  }
+
+  .tab-btn.active {
+    background: var(--surface2);
+    color: var(--text);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.4);
+  }
+
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  /* Card */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 28px;
+    margin-bottom: 20px;
+  }
+
+  .card-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 20px;
+  }
+
+  /* Input Row */
+  .input-row {
+    display: grid;
+    grid-template-columns: 1fr 160px auto;
+    gap: 12px;
+    align-items: end;
+  }
+
+  .input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  label {
+    font-size: 11px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+  }
+
+  input[type="text"],
+  input[type="number"],
+  textarea {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 14px;
+    padding: 12px 16px;
+    outline: none;
+    transition: border-color 0.2s;
+    width: 100%;
+  }
+
+  input:focus, textarea:focus {
+    border-color: rgba(124,109,240,0.5);
+    box-shadow: 0 0 0 3px rgba(124,109,240,0.08);
+  }
+
+  textarea {
+    resize: vertical;
+    min-height: 120px;
+    line-height: 1.6;
+  }
+
+  /* Buttons */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 22px;
+    border-radius: 10px;
+    border: none;
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+
+  .btn-primary {
+    background: linear-gradient(135deg, var(--accent), #6355d0);
+    color: white;
+    box-shadow: 0 4px 14px rgba(124,109,240,0.3);
+  }
+  .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(124,109,240,0.4); }
+  .btn-primary:active { transform: translateY(0); }
+
+  .btn-secondary {
+    background: var(--surface2);
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+  .btn-secondary:hover { background: #22222f; }
+
+  .btn-danger {
+    background: rgba(248,113,113,0.1);
+    color: var(--danger);
+    border: 1px solid rgba(248,113,113,0.2);
+  }
+
+  /* Result card */
+  .result-card {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+    margin-top: 20px;
+    display: none;
+    animation: slideUp 0.3s ease;
+  }
+
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .result-card.show { display: flex; align-items: center; gap: 20px; }
+
+  .result-emoji {
+    font-size: 40px;
+    width: 72px; height: 72px;
+    background: var(--surface);
+    border-radius: 16px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    border: 1px solid var(--border);
+  }
+
+  .result-info { flex: 1; }
+  .result-category {
+    font-family: 'Syne', sans-serif;
+    font-size: 22px;
+    font-weight: 800;
+    margin-bottom: 6px;
+  }
+  .result-desc { color: var(--muted); font-size: 13px; }
+
+  .confidence-bar {
+    margin-top: 12px;
+  }
+  .confidence-label {
+    font-size: 11px;
+    color: var(--muted);
+    margin-bottom: 6px;
+    display: flex;
+    justify-content: space-between;
+  }
+  .bar-track {
+    background: var(--surface);
+    border-radius: 100px;
+    height: 6px;
+    overflow: hidden;
+  }
+  .bar-fill {
+    height: 100%;
+    border-radius: 100px;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    transition: width 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  /* Bulk section */
+  .bulk-hint {
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 16px;
+    line-height: 1.6;
+  }
+
+  .bulk-hint code {
+    background: var(--surface2);
+    padding: 1px 6px;
+    border-radius: 4px;
+    color: var(--accent2);
+  }
+
+  /* Transaction list */
+  .txn-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 20px;
+    max-height: 420px;
+    overflow-y: auto;
+  }
+
+  .txn-list::-webkit-scrollbar { width: 4px; }
+  .txn-list::-webkit-scrollbar-track { background: transparent; }
+  .txn-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .txn-row {
+    display: grid;
+    grid-template-columns: 44px 1fr auto auto;
+    align-items: center;
+    gap: 14px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 16px;
+    animation: slideUp 0.25s ease;
+  }
+
+  .txn-emoji {
+    font-size: 22px;
+    text-align: center;
+  }
+
+  .txn-info { min-width: 0; }
+  .txn-desc {
+    font-size: 13px;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .txn-cat {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+
+  .txn-amount {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 14px;
+    color: var(--text);
+    white-space: nowrap;
+  }
+
+  .conf-pill {
+    font-size: 10px;
+    padding: 3px 8px;
+    border-radius: 100px;
+    background: rgba(124,109,240,0.15);
+    color: var(--accent);
+    white-space: nowrap;
+  }
+
+  /* Stats / Dashboard */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 12px;
+    margin-top: 16px;
+  }
+
+  .stat-card {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    animation: slideUp 0.3s ease;
+  }
+
+  .stat-emoji { font-size: 22px; margin-bottom: 8px; }
+  .stat-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+  .stat-value {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 20px;
+    margin-top: 2px;
+    color: var(--text);
+  }
+
+  /* Chart bars */
+  .chart-bar-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+  .chart-bar-label { width: 140px; font-size: 12px; color: var(--muted); text-align: right; flex-shrink: 0; }
+  .chart-bar-track {
+    flex: 1;
+    background: var(--surface);
+    border-radius: 100px;
+    height: 8px;
+    overflow: hidden;
+  }
+  .chart-bar-fill {
+    height: 100%;
+    border-radius: 100px;
+    transition: width 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  .chart-bar-value { font-size: 12px; color: var(--text); width: 70px; }
+
+  /* Empty state */
+  .empty {
+    text-align: center;
+    padding: 48px 24px;
+    color: var(--muted);
+  }
+  .empty-icon { font-size: 40px; margin-bottom: 12px; }
+  .empty-text { font-size: 13px; line-height: 1.6; }
+
+  /* Loading spinner */
+  .spinner {
+    display: inline-block;
+    width: 14px; height: 14px;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .flex-gap { display: flex; gap: 10px; flex-wrap: wrap; }
+
+  /* Responsive */
+  @media (max-width: 640px) {
+    .input-row { grid-template-columns: 1fr; }
+    .txn-row { grid-template-columns: 36px 1fr auto; }
+    .conf-pill { display: none; }
+    .tabs { width: 100%; }
+    .tab-btn { flex: 1; text-align: center; padding: 8px 12px; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <div class="logo">
+      <div class="logo-icon">💰</div>
+      <h1>Expense<span>AI</span></h1>
+    </div>
+    <div class="badge">ML Powered</div>
+  </header>
+
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('single')">Single</button>
+    <button class="tab-btn" onclick="switchTab('bulk')">Bulk Import</button>
+    <button class="tab-btn" onclick="switchTab('dashboard')">Dashboard</button>
+  </div>
+
+  <!-- SINGLE TAB -->
+  <div id="tab-single" class="tab-content active">
+    <div class="card">
+      <div class="card-title">Categorize Transaction</div>
+      <div class="input-row">
+        <div class="input-group">
+          <label>Description</label>
+          <input type="text" id="desc" placeholder="e.g. Starbucks coffee, Netflix, Uber ride…" />
+        </div>
+        <div class="input-group">
+          <label>Amount ($)</label>
+          <input type="number" id="amount" placeholder="0.00" min="0" step="0.01" />
+        </div>
+        <button class="btn btn-primary" onclick="categorize()">
+          <span id="btn-icon">→</span> Analyze
+        </button>
+      </div>
+
+      <div id="result" class="result-card">
+        <div class="result-emoji" id="res-emoji">🎯</div>
+        <div class="result-info">
+          <div class="result-category" id="res-cat">—</div>
+          <div class="result-desc" id="res-desc">—</div>
+          <div class="confidence-bar">
+            <div class="confidence-label">
+              <span>Confidence</span>
+              <span id="conf-pct">—</span>
+            </div>
+            <div class="bar-track">
+              <div class="bar-fill" id="conf-bar" style="width:0%"></div>
+            </div>
+          </div>
+        </div>
+        <button class="btn btn-secondary" onclick="addToList()" title="Add to dashboard">＋ Add</button>
+      </div>
+    </div>
+
+    <!-- Saved transactions -->
+    <div class="card">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+        <div class="card-title" style="margin:0">Recent Transactions</div>
+        <div class="flex-gap">
+          <button class="btn btn-secondary" onclick="switchTab('dashboard')" style="padding:8px 14px;font-size:12px;">View Stats →</button>
+          <button class="btn btn-danger" onclick="clearAll()" style="padding:8px 14px;font-size:12px;">Clear</button>
+        </div>
+      </div>
+      <div id="txn-list">
+        <div class="empty">
+          <div class="empty-icon">📭</div>
+          <div class="empty-text">No transactions yet.<br/>Analyze one above to get started.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BULK TAB -->
+  <div id="tab-bulk" class="tab-content">
+    <div class="card">
+      <div class="card-title">Bulk Import</div>
+      <p class="bulk-hint">
+        Enter one transaction per line. Format: <code>description, amount</code><br/>
+        Example: <code>Uber ride, 12.50</code> &nbsp;|&nbsp; <code>Netflix subscription, 15.99</code>
+      </p>
+      <textarea id="bulk-input" placeholder="Starbucks coffee, 5.50&#10;Amazon purchase, 34.99&#10;Gym membership, 40.00&#10;Netflix, 15.99&#10;Uber ride, 11.20"></textarea>
+      <div class="flex-gap" style="margin-top:14px;">
+        <button class="btn btn-primary" onclick="bulkCategorize()">
+          <span id="bulk-btn-icon">⚡</span> Categorize All
+        </button>
+        <button class="btn btn-secondary" onclick="loadSample()">Load Sample Data</button>
+      </div>
+    </div>
+
+    <div id="bulk-results"></div>
+  </div>
+
+  <!-- DASHBOARD TAB -->
+  <div id="tab-dashboard" class="tab-content">
+    <div id="dash-empty" class="card">
+      <div class="empty">
+        <div class="empty-icon">📊</div>
+        <div class="empty-text">Add some transactions first to see your spending breakdown.</div>
+      </div>
+    </div>
+    <div id="dash-content" style="display:none">
+      <div class="card">
+        <div class="card-title">Spending Overview</div>
+        <div id="stats-grid" class="stats-grid"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Category Breakdown</div>
+        <div id="chart-bars"></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+let transactions = JSON.parse(localStorage.getItem('expai_txns') || '[]');
+let lastResult = null;
+
+function switchTab(name) {
+  document.querySelectorAll('.tab-btn').forEach((b, i) => {
+    b.classList.toggle('active', ['single','bulk','dashboard'][i] === name);
+  });
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  if (name === 'dashboard') renderDashboard();
+}
+
+async function categorize() {
+  const desc = document.getElementById('desc').value.trim();
+  const amount = parseFloat(document.getElementById('amount').value) || 0;
+  if (!desc) { document.getElementById('desc').focus(); return; }
+
+  const btn = document.querySelector('#tab-single .btn-primary');
+  const icon = document.getElementById('btn-icon');
+  btn.disabled = true;
+  icon.innerHTML = '<span class="spinner"></span>';
+
+  try {
+    const res = await fetch('/categorize', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ description: desc, amount })
+    });
+    const data = await res.json();
+    lastResult = data;
+    showResult(data);
+  } catch (e) {
+    alert('Error: ' + e.message);
+  } finally {
+    btn.disabled = false;
+    icon.innerHTML = '→';
+  }
+}
+
+function showResult(data) {
+  const card = document.getElementById('result');
+  document.getElementById('res-emoji').textContent = data.emoji;
+  document.getElementById('res-cat').textContent = data.category;
+  document.getElementById('res-desc').textContent = `"${data.description}"${data.amount ? ' · $' + parseFloat(data.amount).toFixed(2) : ''}`;
+  document.getElementById('conf-pct').textContent = data.confidence + '%';
+  card.classList.add('show');
+  setTimeout(() => {
+    document.getElementById('conf-bar').style.width = data.confidence + '%';
+  }, 50);
+}
+
+function addToList() {
+  if (!lastResult) return;
+  transactions.unshift({...lastResult, id: Date.now()});
+  saveTxns();
+  renderTxnList();
+  document.getElementById('desc').value = '';
+  document.getElementById('amount').value = '';
+  document.getElementById('result').classList.remove('show');
+  lastResult = null;
+}
+
+function renderTxnList() {
+  const el = document.getElementById('txn-list');
+  if (!transactions.length) {
+    el.innerHTML = `<div class="empty"><div class="empty-icon">📭</div><div class="empty-text">No transactions yet.<br/>Analyze one above to get started.</div></div>`;
+    return;
+  }
+  el.innerHTML = transactions.slice(0, 30).map(t => `
+    <div class="txn-row">
+      <div class="txn-emoji">${t.emoji}</div>
+      <div class="txn-info">
+        <div class="txn-desc">${escHtml(t.description)}</div>
+        <div class="txn-cat">${t.category}</div>
+      </div>
+      ${t.amount ? `<div class="txn-amount">$${parseFloat(t.amount).toFixed(2)}</div>` : '<div></div>'}
+      <div class="conf-pill">${t.confidence}%</div>
+    </div>
+  `).join('');
+}
+
+async function bulkCategorize() {
+  const raw = document.getElementById('bulk-input').value.trim();
+  if (!raw) return;
+  const lines = raw.split('\n').filter(l => l.trim());
+  const txns = lines.map(l => {
+    const parts = l.split(',');
+    const desc = parts.slice(0, parts.length > 1 ? -1 : 1).join(',').trim();
+    const amount = parts.length > 1 ? parseFloat(parts[parts.length - 1]) || 0 : 0;
+    return { description: desc, amount };
+  }).filter(t => t.description);
+
+  const icon = document.getElementById('bulk-btn-icon');
+  icon.innerHTML = '<span class="spinner"></span>';
+
+  try {
+    const res = await fetch('/categorize_bulk', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ transactions: txns })
+    });
+    const data = await res.json();
+    renderBulkResults(data.results);
+    transactions = [...data.results.map(r => ({...r, id: Date.now() + Math.random()})), ...transactions];
+    saveTxns();
+    renderTxnList();
+  } catch(e) {
+    alert('Error: ' + e.message);
+  } finally {
+    icon.innerHTML = '⚡';
+  }
+}
+
+function renderBulkResults(results) {
+  const el = document.getElementById('bulk-results');
+  el.innerHTML = `
+    <div class="card">
+      <div class="card-title">${results.length} Transactions Categorized</div>
+      <div class="txn-list" style="max-height:400px; overflow-y:auto;">
+        ${results.map(t => `
+          <div class="txn-row">
+            <div class="txn-emoji">${t.emoji}</div>
+            <div class="txn-info">
+              <div class="txn-desc">${escHtml(t.description)}</div>
+              <div class="txn-cat">${t.category}</div>
+            </div>
+            ${t.amount ? `<div class="txn-amount">$${parseFloat(t.amount).toFixed(2)}</div>` : '<div></div>'}
+            <div class="conf-pill">${t.confidence}%</div>
+          </div>
+        `).join('')}
+      </div>
+    </div>`;
+}
+
+function renderDashboard() {
+  if (!transactions.length) {
+    document.getElementById('dash-empty').style.display = 'block';
+    document.getElementById('dash-content').style.display = 'none';
+    return;
+  }
+  document.getElementById('dash-empty').style.display = 'none';
+  document.getElementById('dash-content').style.display = 'block';
+
+  const totals = {};
+  const counts = {};
+  let grand = 0;
+  transactions.forEach(t => {
+    const amt = parseFloat(t.amount) || 0;
+    totals[t.category] = (totals[t.category] || 0) + amt;
+    counts[t.category] = (counts[t.category] || 0) + 1;
+    grand += amt;
+  });
+
+  const sorted = Object.entries(totals).sort((a, b) => b[1] - a[1]);
+  const CAT_COLORS = {
+    "Food & Dining":"#f97316","Transport":"#3b82f6","Shopping":"#a855f7",
+    "Entertainment":"#ec4899","Health & Medical":"#10b981","Utilities":"#f59e0b",
+    "Travel":"#06b6d4","Education":"#6366f1","Groceries":"#84cc16",
+    "Finance":"#64748b","Subscriptions":"#8b5cf6","Other":"#94a3b8"
+  };
+  const CAT_EMOJI = {
+    "Food & Dining":"🍔","Transport":"🚗","Shopping":"🛍️","Entertainment":"🎬",
+    "Health & Medical":"💊","Utilities":"💡","Travel":"✈️","Education":"📚",
+    "Groceries":"🛒","Finance":"💳","Subscriptions":"📱","Other":"📦"
+  };
+
+  // Stats grid
+  const statsEl = document.getElementById('stats-grid');
+  statsEl.innerHTML = sorted.slice(0, 6).map(([cat, amt]) => `
+    <div class="stat-card">
+      <div class="stat-emoji">${CAT_EMOJI[cat] || '📦'}</div>
+      <div class="stat-label">${cat}</div>
+      <div class="stat-value">$${amt.toFixed(2)}</div>
+    </div>
+  `).join('');
+
+  // Chart bars
+  const maxVal = sorted[0]?.[1] || 1;
+  const chartEl = document.getElementById('chart-bars');
+  chartEl.innerHTML = sorted.map(([cat, amt]) => `
+    <div class="chart-bar-row">
+      <div class="chart-bar-label">${CAT_EMOJI[cat]||'📦'} ${cat}</div>
+      <div class="chart-bar-track">
+        <div class="chart-bar-fill" style="width:0%; background:${CAT_COLORS[cat]||'#94a3b8'}" data-w="${(amt/maxVal*100).toFixed(1)}"></div>
+      </div>
+      <div class="chart-bar-value">$${amt.toFixed(2)}</div>
+    </div>
+  `).join('');
+
+  setTimeout(() => {
+    document.querySelectorAll('.chart-bar-fill').forEach(el => {
+      el.style.width = el.dataset.w + '%';
+    });
+  }, 50);
+}
+
+function clearAll() {
+  if (confirm('Clear all transactions?')) {
+    transactions = [];
+    saveTxns();
+    renderTxnList();
+  }
+}
+
+function loadSample() {
+  document.getElementById('bulk-input').value =
+`Starbucks coffee, 5.50
+Amazon purchase, 34.99
+Gym membership Planet Fitness, 40.00
+Netflix, 15.99
+Uber ride, 11.20
+Walmart groceries, 87.43
+Electric bill, 95.00
+Delta flight ticket, 320.00
+Udemy Python course, 14.99
+Doctor visit copay, 30.00
+AT&T phone bill, 65.00
+McDonald's lunch, 8.75
+Spotify premium, 9.99
+Target shopping, 52.30
+Gas station BP, 48.60`;
+}
+
+function saveTxns() {
+  localStorage.setItem('expai_txns', JSON.stringify(transactions));
+}
+
+function escHtml(str) {
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// Keyboard shortcut
+document.getElementById('desc').addEventListener('keydown', e => {
+  if (e.key === 'Enter') categorize();
+});
+
+// Init
+renderTxnList();
+</script>
+</body>
+</html>
