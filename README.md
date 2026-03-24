@@ -50,6 +50,9 @@ http://localhost:5000
 | POST | `/stats` | Get totals by category |
 | POST | `/train` | Retrain the model |
 
+Screenshots<img width="869" height="934" alt="image" src="https://github.com/user-attachments/assets/69cc161d-f74e-4d99-8e1a-f7b1cb09264c" />
+
+
 ## 🔧 Extending the Project
 - Add a CSV upload feature for bank statement imports
 - Connect to a real database (SQLite/PostgreSQL) to persist transactions
