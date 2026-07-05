@@ -61,9 +61,3 @@ http://localhost:5000
 ### Dashboard
 <img src="screenshots/dashboard.png" width="600"/>
 
-## 🔧 Extending the Project
-- Add a CSV upload feature for bank statement imports
-- Connect to a real database (SQLite/PostgreSQL) to persist transactions
-- Add more training data to `TRAINING_DATA` in `categorizer.py`
-- Try replacing LogReg with a fine-tuned BERT model for higher accuracy
-- Add user authentication with Flask-Login
